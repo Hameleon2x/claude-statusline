@@ -9,7 +9,12 @@
 jq -c --argjson nc "$nc" '
   def c($code): if $nc == 1 then "" else "\u001b[" + $code + "m" end;
   def reset: c("0");
-  def dim($s): c("2") + $s + reset;
+  # same 256-color palette as statusline.sh
+  def green: c("38;5;71");
+  def orange: c("38;5;208");
+  def red: c("38;5;196");
+  def grey: c("38;5;240");
+  def dim($s): grey + $s + reset;
 
   def human_tokens:
     if . >= 1000000 then "\(. / 100000 | floor / 10)M"
@@ -18,15 +23,15 @@ jq -c --argjson nc "$nc" '
 
   def human_duration:
     (. / 3600 | floor) as $h | ((. % 3600) / 60 | floor) as $m | (. % 60) as $s
-    | if $h > 0 then "\($h)h\($m)m" elif $m > 0 then "\($m)m\($s)s" else "\($s)s" end;
+    | if $h > 0 then "\($h)ч \($m)м" elif $m > 0 then "\($m)м \($s)с" else "\($s)с" end;
 
   # same zones as the main status line: worst of percent and absolute tokens
   def level($pct; $tok):
     ([ (if $pct >= 85 then 3 elif $pct >= 70 then 2 elif $pct >= 50 then 1 else 0 end),
        (if $tok >= 800000 then 3 elif $tok >= 600000 then 2 elif $tok >= 400000 then 1 else 0 end) ] | max);
 
-  def color($lvl): [c("32"), c("33"), c("31"), c("31")][$lvl];
-  def text_color($lvl): [c("32"), c("33"), c("31"), c("1;97;41")][$lvl];
+  def color($lvl): [green, orange, red, red][$lvl];
+  def text_color($lvl): [green, orange, red, c("1;97;48;5;160")][$lvl];
 
   def bar($pct; $w; $lvl):
     ([(($pct * $w + 50) / 100 | floor), $w] | min) as $f
@@ -38,10 +43,10 @@ jq -c --argjson nc "$nc" '
     sub("^claude-"; "") | sub("\\[.*\\]$"; "") | sub("-(?<a>[0-9]+)-(?<b>[0-9]+)$"; "-\(.a).\(.b)");
 
   def status_icon:
-    { "running":   (c("33") + "●"),
-      "completed": (c("32") + "✔"),
-      "failed":    (c("31") + "✘"),
-      "killed":    (c("2")  + "■") }[.] // (c("2") + "○");
+    { "running":   (orange + "●"),
+      "completed": (green + "✔"),
+      "failed":    (red + "✘"),
+      "killed":    (grey + "■") }[.] // (grey + "○");
 
   (now | floor) as $now
   | (.columns // 120) as $cols

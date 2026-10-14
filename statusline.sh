@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code status line
-#   model [effort] | folder | ctx:bar %  (used/max) | 5h:bar % ×pace (reset) · 7d:bar % ×pace (reset)
+#   model [effort] ⚡ | folder | ctx:bar %  (used/max) | 5ч:bar % ×pace (reset) · 7д:bar % ×pace (reset)
 # Input: session JSON on stdin (see https://code.claude.com/docs/en/statusline)
 # Requires: bash 4+, jq
 
@@ -27,15 +27,15 @@ PACE_CRIT=${PACE_CRIT:-250}                 # critical (also: limit ≥ 95% used
 
 ESC=$'\033'
 C_RESET="${ESC}[0m"
-C_DIM="${ESC}[2m"
-C_BOLD="${ESC}[1m"
-C_GREEN="${ESC}[32m"
-C_YELLOW="${ESC}[33m"
-C_RED="${ESC}[31m"
-C_BLUE="${ESC}[34m"
-C_CRIT="${ESC}[1;97;41m"                    # bold white on red background
+C_DIM="${ESC}[38;5;240m"
+C_GREEN="${ESC}[38;5;71m"
+C_YELLOW="${ESC}[38;5;208m"                 # orange: reads better than yellow on light themes
+C_RED="${ESC}[38;5;196m"
+C_MODEL="${ESC}[38;5;111m"
+C_DIR="${ESC}[38;5;180m"
+C_CRIT="${ESC}[1;97;48;5;160m"              # bold white on red background
 if [ -n "$NO_COLOR" ]; then
-  C_RESET="" C_DIM="" C_BOLD="" C_GREEN="" C_YELLOW="" C_RED="" C_BLUE="" C_CRIT=""
+  C_RESET="" C_DIM="" C_GREEN="" C_YELLOW="" C_RED="" C_MODEL="" C_DIR="" C_CRIT=""
 fi
 
 # level 0..3 -> $COL (bar color) and $TXT (percent text color)
@@ -92,10 +92,10 @@ human_duration() {
   local s="$1" d h m
   case "$s" in ''|*[!0-9]*) return ;; esac
   d=$(( s / 86400 )); h=$(( (s % 86400) / 3600 )); m=$(( (s % 3600) / 60 ))
-  if   (( d > 0 )); then printf '%dd%dh' "$d" "$h"
-  elif (( h > 0 )); then printf '%dh%dm' "$h" "$m"
-  elif (( m > 0 )); then printf '%dm' "$m"
-  else                   printf '%ds' "$s"
+  if   (( d > 0 )); then printf '%dд %dч' "$d" "$h"
+  elif (( h > 0 )); then printf '%dч %dм' "$h" "$m"
+  elif (( m > 0 )); then printf '%dм' "$m"
+  else                   printf '%dс' "$s"
   fi
 }
 
@@ -138,6 +138,7 @@ mapfile -t F < <(jq -r '
     (.model.display_name // .model.id // "unknown"),
     (.effort.level // ""),
     (if .thinking.enabled == false then "off" else "" end),
+    (if .fast_mode == true then "on" else "" end),
     (.context_window.used_percentage // ""),
     (.context_window.total_input_tokens // ""),
     (.context_window.context_window_size // "")
@@ -154,27 +155,29 @@ F=("${F[@]%"$CR"}")
 model="${F[0]:-unknown}"
 effort="${F[1]}"
 thinking_off="${F[2]}"
-ctx_used="${F[3]}"
-ctx_cur="${F[4]}"
-ctx_max="${F[5]}"
-sess_pct="${F[6]}"  sess_pace="${F[7]}"  sess_left="${F[8]}"
-week_pct="${F[9]}"  week_pace="${F[10]}" week_left="${F[11]}"
-dir="${F[12]}"
+fast="${F[3]}"
+ctx_used="${F[4]}"
+ctx_cur="${F[5]}"
+ctx_max="${F[6]}"
+sess_pct="${F[7]}"  sess_pace="${F[8]}"  sess_left="${F[9]}"
+week_pct="${F[10]}" week_pace="${F[11]}" week_left="${F[12]}"
+dir="${F[13]}"
 
 # --- build parts ---
 
-# 1. Model + effort. "(1M context)" is dropped — the context part shows the size anyway.
+# 1. Model + effort + fast mode. "(1M context)" is dropped — the context part shows the size anyway.
 model="${model% (*context)}"
-model_part="${C_BOLD}${model}${C_RESET}"
+model_part="${C_MODEL}${model}${C_RESET}"
 if [ -n "$thinking_off" ]; then
   model_part+=" ${C_DIM}[no think]${C_RESET}"
 elif [ -n "$effort" ]; then
   model_part+=" ${C_DIM}[${effort}]${C_RESET}"
 fi
+[ -n "$fast" ] && model_part+=" ${C_YELLOW}⚡${C_RESET}"
 
 # 2. Project folder
 dir_part=""
-[ -n "$dir" ] && dir_part="${C_BLUE}${dir}${C_RESET}"
+[ -n "$dir" ] && dir_part="${C_DIR}${dir}${C_RESET}"
 
 # 3. Context: bar + % + (used/max). Critical gets a red badge with a hint.
 ctx_part=""
@@ -200,8 +203,8 @@ if [ -n "$ctx_used" ]; then
 fi
 
 # 4. Rate limits: 5h + 7d, colored by pace
-sess_str=$(rate_part "5h" "$sess_pct" "$sess_pace" "$sess_left")
-week_str=$(rate_part "7d" "$week_pct" "$week_pace" "$week_left")
+sess_str=$(rate_part "5ч" "$sess_pct" "$sess_pace" "$sess_left")
+week_str=$(rate_part "7д" "$week_pct" "$week_pace" "$week_left")
 limits_part="$sess_str"
 if [ -n "$week_str" ]; then
   [ -n "$limits_part" ] && limits_part+=" ${C_DIM}·${C_RESET} "
