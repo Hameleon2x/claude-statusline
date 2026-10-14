@@ -35,15 +35,15 @@ Opus 5.5 [xhigh]  |  claude-statusline  |  ctx:██████░░░░ 55
 
 | Уровень | % окна | или токенов | Что делать |
 | :- | :- | :- | :- |
-| 🟢 зелёный | < 50% | < 200k | всё ок |
-| 🟡 жёлтый | 50–70% | 200–350k | пора задуматься о `/compact` (или `/clear`, если задача закончена) |
-| 🔴 красный | 70–85% | 350–500k | сжимать сейчас |
-| 🟥 **⚠ 87% /compact** (белый на красном фоне) | ≥ 85% | ≥ 500k | критично: вот-вот сработает авто-компакт |
+| 🟢 зелёный | < 50% | < 400k | всё ок |
+| 🟡 жёлтый | 50–70% | 400–600k | пора задуматься о `/compact` (или `/clear`, если задача закончена) |
+| 🔴 красный | 70–85% | 600–800k | сжимать сейчас |
+| 🟥 **⚠ 87% /compact** (белый на красном фоне) | ≥ 85% | ≥ 800k | критично: вот-вот сработает авто-компакт |
 
 Почему так:
 
 - **Процент** нужен для окна 200k: авто-компакт там срабатывает примерно на ~93% (окно минус ~13k под ответ). Сжимать вручную лучше заранее — авто-компакт случается в момент, когда модель хуже всего понимает, что пригодится дальше, и суммаризирует наугад. Распространённая рекомендация сообщества — начинать думать о компакте после 50–60%.
-- **Абсолютные токены** нужны для окна 1M: «context rot» (деградация качества из-за шума в длинном контексте) по наблюдениям Anthropic начинается в районе 300–400k токенов, независимо от размера окна. Поэтому 420k в окне 1M — это уже красный, хоть и всего 42%.
+- **Абсолютные токены** нужны для окна 1M: там пороги 400k / 600k / 800k (40/60/80%). Официального порога для 1M нет — Anthropic заявляет, что Opus держит точность на всём окне ([78.3% MRCR v2 на 1M](https://claude.com/blog/1m-context-ga)). Но длинный контекст — это дороже, медленнее и больше шума от старых задач («context rot», по словам сотрудника Anthropic заметный с ~300–400k), поэтому на 40% стоит задуматься о `/compact` или `/clear`, а критично — только ближе к концу окна.
 
 Процент берётся из `context_window.used_percentage` (считается только по input-токенам, как и в самом Claude Code).
 
@@ -79,7 +79,7 @@ Opus 5.5 [xhigh]  |  claude-statusline  |  ctx:██████░░░░ 55
 | Переменная | По умолчанию |
 | :- | :- |
 | `CTX_WARN_PCT` / `CTX_HIGH_PCT` / `CTX_CRIT_PCT` | 50 / 70 / 85 |
-| `CTX_WARN_TOK` / `CTX_HIGH_TOK` / `CTX_CRIT_TOK` | 200000 / 350000 / 500000 |
+| `CTX_WARN_TOK` / `CTX_HIGH_TOK` / `CTX_CRIT_TOK` | 400000 / 600000 / 800000 |
 | `PACE_WARN` / `PACE_HIGH` / `PACE_CRIT` (×100) | 100 / 150 / 250 |
 | `NO_COLOR` | выключает цвета |
 
@@ -150,5 +150,6 @@ echo '{"columns":120,"tasks":[{"id":"a","agentType":"Explore","status":"running"
 - [Документация Claude Code: status line](https://code.claude.com/docs/en/statusline) — поля JSON, `subagentStatusLine`, `refreshInterval`
 - [Claude Code auto-compact: что его вызывает](https://www.morphllm.com/claude-code-auto-compact) — порог ~187k из 200k
 - [Auto-compact на ~420k в окне 1M](https://claudeissues.com/issue/40757-auto-compact-triggers-at-420k-tokens-despite-opus-having-1m-context-window-thres)
-- [Context rot с ~300–400k токенов (со слов сотрудника Anthropic)](https://youmind.com/landing/x-viral-articles/claude-code-internal-best-practices)
+- [Context rot с ~300–400k токенов (со слов сотрудника Anthropic, пересказ)](https://youmind.com/landing/x-viral-articles/claude-code-internal-best-practices)
+- [1M context GA: точность на всём окне](https://claude.com/blog/1m-context-ga)
 - [CLAUDE_AUTOCOMPACT_PCT_OVERRIDE](https://github.com/anthropics/claude-code/issues/11819)

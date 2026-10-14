@@ -23,7 +23,7 @@ jq -c --argjson nc "$nc" '
   # same zones as the main status line: worst of percent and absolute tokens
   def level($pct; $tok):
     ([ (if $pct >= 85 then 3 elif $pct >= 70 then 2 elif $pct >= 50 then 1 else 0 end),
-       (if $tok >= 500000 then 3 elif $tok >= 350000 then 2 elif $tok >= 200000 then 1 else 0 end) ] | max);
+       (if $tok >= 800000 then 3 elif $tok >= 600000 then 2 elif $tok >= 400000 then 1 else 0 end) ] | max);
 
   def color($lvl): [c("32"), c("33"), c("31"), c("31")][$lvl];
   def text_color($lvl): [c("32"), c("33"), c("31"), c("1;97;41")][$lvl];

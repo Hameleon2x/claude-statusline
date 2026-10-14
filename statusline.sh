@@ -10,13 +10,13 @@ input=$(cat)
 
 # context: level is the worst of "percent of window" and "absolute tokens".
 # Percent catches the 200k window running into auto-compact (~93%);
-# tokens catch context rot on 1M windows, which starts ~300-400k regardless of size.
+# tokens soften 1M windows: 400k/600k/800k (40/60/80%) — no official threshold exists.
 CTX_WARN_PCT=${CTX_WARN_PCT:-50}            # yellow: time to /compact soon
 CTX_HIGH_PCT=${CTX_HIGH_PCT:-70}            # red: compact now
 CTX_CRIT_PCT=${CTX_CRIT_PCT:-85}            # critical: auto-compact is about to fire
-CTX_WARN_TOK=${CTX_WARN_TOK:-200000}
-CTX_HIGH_TOK=${CTX_HIGH_TOK:-350000}
-CTX_CRIT_TOK=${CTX_CRIT_TOK:-500000}
+CTX_WARN_TOK=${CTX_WARN_TOK:-400000}
+CTX_HIGH_TOK=${CTX_HIGH_TOK:-600000}
+CTX_CRIT_TOK=${CTX_CRIT_TOK:-800000}
 
 # rate limits: pace = current burn rate / sustainable rate (what's left ÷ time left), ×100
 PACE_WARN=${PACE_WARN:-100}                 # yellow: at this pace you hit the limit before reset
