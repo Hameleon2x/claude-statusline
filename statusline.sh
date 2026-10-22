@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code status line
-#   model [effort] ⚡ | folder | ctx:bar %  (used/max) | 5ч:bar % ×pace (reset) · 7д:bar % ×pace (reset)
+#   model [effort] ⚡ | folder | ctx:bar %  (used/max) | 5ч:bar % ×pace (reset [runout]) · 7д:bar % ×pace (reset [runout])
 # Input: session JSON on stdin (see https://code.claude.com/docs/en/statusline)
 # Requires: bash 4+, jq
 
@@ -101,18 +101,22 @@ human_duration() {
 
 # rate_part <label> <used%> <pace×100> <seconds to reset>
 rate_part() {
-  local label="$1" pct="$2" pace="$3" left="$4" lvl b pace_str="" cd=""
+  local label="$1" pct="$2" pace="$3" left="$4" lvl b pace_str="" cd="" runout=""
   [ -z "$pct" ] && return
   lvl=$(level_of "${pace:-0}" "$PACE_WARN" "$PACE_HIGH" "$PACE_CRIT")
   (( pct >= 95 )) && lvl=3
   (( pct >= 80 && lvl < 2 )) && lvl=2
   b=$(bar "$pct" 6 "$lvl")
   level_color "$lvl"
-  # show the multiplier only when burning faster than sustainable
+  # show the multiplier only when burning faster than sustainable,
+  # plus how long the remainder lasts at this pace: (100 - used) / rate = left / pace
   if [ -n "$pace" ] && (( pace >= PACE_WARN )); then
     printf -v pace_str ' %s×%d.%d%s' "$TXT" $(( pace / 100 )) $(( pace % 100 / 10 )) "$C_RESET"
+    if [ -n "$left" ] && (( pct < 100 )); then
+      runout="${C_RESET} ${TXT}[$(human_duration $(( left * 100 / pace )))]${C_RESET}${C_DIM}"
+    fi
   fi
-  [ -n "$left" ] && cd=" ${C_DIM}($(human_duration "$left"))${C_RESET}"
+  [ -n "$left" ] && cd=" ${C_DIM}($(human_duration "$left")${runout})${C_RESET}"
   printf '%s%s:%s%s %s%d%%%s%s%s' "$C_DIM" "$label" "$C_RESET" "$b" "$TXT" "$pct" "$C_RESET" "$pace_str" "$cd"
 }
 
